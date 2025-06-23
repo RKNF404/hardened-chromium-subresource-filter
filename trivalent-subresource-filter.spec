@@ -25,7 +25,6 @@ Summary:   Subresource filter for %{chromium_name}
 }
 
 Source0: chromium-%{version}-clean.tar.xz
-Source1: install_filter.sh
 %{lua:
     if posix.getenv("HOME") == "/builddir" then
         filters = rpm.glob('/builddir/build/SOURCES/filter-*.txt')
@@ -43,6 +42,8 @@ Source1: install_filter.sh
     end
     rpm.define("_filterCount "..count-1)
 }
+
+%global install_directory %{_sysconfdir}/%{chromium_name}/filter
 
 
 # Dependencies required
@@ -132,23 +133,26 @@ for filter in filter-*.txt; do
 done
 
 # Run the tool to generate the blocklist
-./%{chromebuilddir}/ruleset_converter --input_format=filter-list --output_format=unindexed-ruleset --input_files=${filters::-1} --output_file=%{chromium_name}-blocklist > /dev/null
+./%{chromebuilddir}/ruleset_converter --input_format=filter-list --output_format=unindexed-ruleset --input_files=${filters::-1} --output_file=content-blocklist > /dev/null
 cp %{chromium_name}-blocklist ../
 
 # Cleanup
 rm -r %{chromebuilddir}
 
 %install
-INSTALL_DIR="%{buildroot}%{_sysconfdir}/%{chromium_name}/filter"
-SCRIPT_DIR="%{buildroot}%{_libdir}/%{chromium_name}/"
-mkdir -p "$INSTALL_DIR"
-mkdir -p "$SCRIPT_DIR"
-install -m 0644 %{chromium_name}-blocklist "$INSTALL_DIR/%{chromium_name}-blocklist"
-install -m 0755 %{SOURCE1} "$SCRIPT_DIR/install_filter.sh"
-echo "%{release}" > $INSTALL_DIR/%{chromium_name}-blocklist-version.txt
-chmod a+r $INSTALL_DIR/%{chromium_name}-blocklist-version.txt
+INSTALL_DIR="%{buildroot}%{install_directory}/%{release}"
+declare -r INSTALL_DIR
+mkdir -p -m 0755 "$INSTALL_DIR"
+install -m 0644 content-blocklist "$INSTALL_DIR/Filter Rules"
+cat << EOF > "$INSTALL_DIR/manifest.json"
+{
+  "manifest_version": 2,
+  "name": "Subresource Filtering Rules",
+  "ruleset_format": 1,
+  "version": "%{release}"
+}
+EOF
+chmod 0644 $INSTALL_DIR/*
 
 %files
-%{_sysconfdir}/%{chromium_name}/filter/%{chromium_name}-blocklist
-%{_sysconfdir}/%{chromium_name}/filter/%{chromium_name}-blocklist-version.txt
-%{_libdir}/%{chromium_name}/install_filter.sh
+%{install_directory}
