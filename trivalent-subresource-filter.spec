@@ -134,7 +134,7 @@ done
 
 # Run the tool to generate the blocklist
 ./%{chromebuilddir}/ruleset_converter --input_format=filter-list --output_format=unindexed-ruleset --input_files=${filters::-1} --output_file=content-blocklist > /dev/null
-cp %{chromium_name}-blocklist ../
+cp content-blocklist ../
 
 # Cleanup
 rm -r %{chromebuilddir}
