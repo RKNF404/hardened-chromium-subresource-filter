@@ -64,7 +64,7 @@ ExclusiveArch: x86_64 aarch64
             print(printPatch.."\n")
             count = count + 1
         end
-        rpm.define("_patchCount "..count)
+        rpm.define("_patchCount "..count-1)
     	os.execute("echo 'Autopatch: "..macros['_patchCount'].."'")
 	end
 }
