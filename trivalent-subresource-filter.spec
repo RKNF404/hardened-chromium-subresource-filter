@@ -11,7 +11,6 @@
 Source69: chromium-version.txt
 
 Name:      %{chromium_name}-subresource-filter
-BuildArch: noarch
 Requires:  %{chromium_name}
 License:   Apache-2.0
 Summary:   Subresource filter for %{chromium_name}
@@ -52,20 +51,20 @@ ExclusiveArch: x86_64 aarch64
 	rpm.execute("echo", macros['use_system_toolchain'])
     if macros['use_system_toolchain'] == "1" then
 	    if posix.getenv("HOME") == "/builddir" then
-	        patches = rpm.glob('/builddir/build/SOURCES/*.patch')
+	        fpatches = rpm.glob('/builddir/build/SOURCES/fedora-*.patch')
 	    else
-	        patches = rpm.glob(macros['_sourcedir']..'/*.patch')
+	        fpatches = rpm.glob(macros['_sourcedir']..'/fedora-*.patch')
 	    end
-	    local count = 1
-	    local printPatch = ""
-        for p in ipairs(patches) do
-            os.execute("echo 'Patching in "..patches[p].."'")
-            printPatch = "Patch"..count..": "..patches[p]
+	    local count = 1000
+        local printPatch = ""
+        for p in ipairs(fpatches) do
+            os.execute("echo 'Patching in "..fpatches[p].."'")
+            printPatch = "Patch"..count..": fedora-"..count..".patch"
             rpm.execute("echo", printPatch)
             print(printPatch.."\n")
             count = count + 1
         end
-        rpm.define("_patchCount "..count-1)
+        rpm.define("_fedoraPatchCount "..count-1)
     	os.execute("echo 'Autopatch: "..macros['_patchCount'].."'")
 	end
 }
@@ -118,7 +117,7 @@ Filter used by %{chromium_name} to provide content blocking.
 %setup -q -n chromium-%{version}
 
 %if %{use_system_toolchain}
-%autopatch -p1 -m 1 -M %{_patchCount}
+%autopatch -p1 -m 1000 -M %{_patchCount}
 %endif
 
 %build
