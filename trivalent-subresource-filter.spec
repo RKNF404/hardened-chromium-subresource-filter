@@ -56,15 +56,15 @@ ExclusiveArch: x86_64 aarch64
 	        fpatches = rpm.glob(macros['_sourcedir']..'/fedora-*.patch')
 	    end
 	    local count = 1000
-        local printPatch = ""
-        for p in ipairs(fpatches) do
-            os.execute("echo 'Patching in "..fpatches[p].."'")
-            printPatch = "Patch"..count..": fedora-"..count..".patch"
-            rpm.execute("echo", printPatch)
-            print(printPatch.."\n")
-            count = count + 1
-        end
-        rpm.define("_fedoraPatchCount "..count-1)
+	    local printPatch = ""
+	    for p in ipairs(fpatches) do
+	 		os.execute("echo 'Patching in "..fpatches[p].."'")
+	 		printPatch = "Patch"..count..": fedora-"..count..".patch"
+	 		rpm.execute("echo", printPatch)
+	 		print(printPatch.."\n")
+	 		count = count + 1
+	 	end
+	 	rpm.define("_fedoraPatchCount "..count-1)
     	os.execute("echo 'Autopatch: "..macros['_patchCount'].."'")
 	end
 }
