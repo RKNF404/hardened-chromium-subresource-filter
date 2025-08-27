@@ -1,10 +1,12 @@
 %global numjobs %{_smp_build_ncpus}
-%global build_target() \
-	export NINJA_STATUS="[%2:%f/%t] " ; \
-	ninja -j %{numjobs} -C '%1' '%2'
-%global chromium_pybin %{__python3}
 %global chromebuilddir out/Release
-%global chromium_name trivalent
+%global chromium_name 
+
+%ifarch x86_64
+%global use_system_toolchain 0
+%else
+%global use_system_toolchain 1
+%endif
 
 Source69: chromium-version.txt
 
@@ -46,10 +48,31 @@ Source1: install_filter.sh
 
 ExclusiveArch: x86_64 aarch64
 
+%{lua:
+    if macros['use_system_toolchain'] == "1" then
+	    if posix.getenv("HOME") == "/builddir" then
+	        patches = rpm.glob('/builddir/build/SOURCES/*.patch')
+	    else
+	        patches = rpm.glob(macros['_sourcedir']..'/*.patch')
+	    end
+	    local count = 1
+	    local printPatch = ""
+        for p in ipairs(patches) do
+            os.execute("echo 'Patching in "..patches[p].."'")
+            printPatch = "Patch"..count..": "..p
+            rpm.execute("echo", printPatch)
+            print(printPatch.."\n")
+            count = count + 1
+        end
+        rpm.define("_patchCount "..count)
+    	os.execute("echo 'Autopatch: "..macros['_patchCount'].."'")
+	end
+}
+
 # Dependencies required
 BuildRequires: nss-devel >= 3.26
 BuildRequires: glib2-devel
-BuildRequires: %{chromium_pybin}
+BuildRequires: %{__python3}
 BuildRequires: cups-devel
 BuildRequires: libxkbcommon-devel
 BuildRequires: libudev-devel
@@ -71,11 +94,31 @@ BuildRequires: libatomic
 # One of the python scripts invokes git to look for a hash. So helpful.
 BuildRequires: git-core
 
+%if %{use_system_toolchain}
+BuildRequires: clang
+BuildRequires: clang-tools-extra
+BuildRequires: compiler-rt
+BuildRequires: llvm
+BuildRequires: lld
+BuildRequires: rustc
+BuildRequires: bindgen-cli
+BuildRequires: ninja-build
+BuildRequires: gn
+BuildRequires: nodejs
+%global build_target() \
+	export NINJA_STATUS="[%2:%f/%t] " ; \
+	ninja -j %{numjobs} -C '%1' '%2'
+%endif
+
 %description
 Filter used by %{chromium_name} to provide content blocking.
 
 %prep
 %setup -q -n chromium-%{version}
+
+%if %{use_system_toolchain}
+%autopatch -p1 -m 1 -M %{_patchCount}
+%endif
 
 %build
 FLAGS=' -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-unused-command-line-argument'
@@ -97,34 +140,43 @@ export LDFLAGS
 
 export RUSTC_BOOTSTRAP=1
 
-# add internal clang to PATH for build
-PATH="$PATH:$(pwd)/third_party/llvm-build/Release+Asserts/bin"
-
-# add internal rust utils to PATH for build
-PATH="$PATH:$(pwd)/third_party/rust-toolchain/bin"
-
-# add internal nodejs to PATH for build
-PATH="$PATH:$(pwd)/third_party/node/linux/node-linux-x64/bin"
-
-# add internal ninja to PATH for build
-PATH="$PATH:$(pwd)/third_party/ninja"
-
+%if %{use_system_toolchain}
+declare -r clang_version="$(clang --version | sed -n 's/clang version //p' | cut -d. -f1)"
+declare -r clang_base_path="$(PATH=/usr/bin:/usr/sbin which clang | sed 's#/bin/.*##')"
+declare -r rust_bindgen_root="$(which bindgen | sed 's#/s\?bin/.*##')"
+%else
+PATH="$PATH:$PWD/buildtools/linux64"
 export PATH
+%endif
 
 CHROMIUM_GN_DEFINES=""
 %ifarch aarch64
 CHROMIUM_GN_DEFINES+=' target_cpu="arm64"'
+%endif
+%if %{use_system_toolchain}
+CHROMIUM_GN_DEFINES+=" custom_toolchain=\"//build/toolchain/linux/unbundle:default\""
+CHROMIUM_GN_DEFINES+=" host_toolchain=\"//build/toolchain/linux/unbundle:default\""
+CHROMIUM_GN_DEFINES+=" clang_base_path=\"$clang_base_path\""
+CHROMIUM_GN_DEFINES+=" clang_version=$clang_version"
+CHROMIUM_GN_DEFINES+=" clang_use_chrome_plugins=false"
+CHROMIUM_GN_DEFINES+=" rust_sysroot_absolute=\"$(rustc --print sysroot)\""
+CHROMIUM_GN_DEFINES+=" rust_bindgen_root=\"$rust_bindgen_root\""
+CHROMIUM_GN_DEFINES+=" rustc_version=\"$(rustc --version)\""
 %endif
 CHROMIUM_GN_DEFINES+=' system_libdir="%{_lib}"'
 CHROMIUM_GN_DEFINES+=' is_clang=true'
 CHROMIUM_GN_DEFINES+=' use_sysroot=false'
 export CHROMIUM_GN_DEFINES
 
-mkdir -p %{chromebuilddir} && cp -a buildtools/linux64/gn %{chromebuilddir}/
+mkdir -p %{chromebuilddir}
 
-# Build the converter tool
-%{chromebuilddir}/gn --script-executable=%{chromium_pybin} gen --args="$CHROMIUM_GN_DEFINES" %{chromebuilddir}
+gn --script-executable=%{__python3} gen --args="$CHROMIUM_GN_DEFINES" %{chromebuilddir}
+
+%if %{use_system_toolchain}
 %build_target %{chromebuilddir} subresource_filter_tools
+%else
+%{__python3} third_party/depot_tools/autoninja.py -C %{chromebuilddir} subresource_filter_tools
+%endif
 
 # copy the filters over and generate the string of said filters
 for filter in %{_sourcedir}/filter-*.txt; do
