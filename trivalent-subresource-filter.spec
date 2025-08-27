@@ -5,7 +5,7 @@
 %ifarch x86_64
 %global use_system_toolchain 0
 %else
-%global use_system_toolchain 1
+%global use_system_toolchain 0
 %endif
 
 Source69: chromium-version.txt
