@@ -1,6 +1,6 @@
 %global numjobs %{_smp_build_ncpus}
 %global chromebuilddir out/Release
-%global chromium_name 
+%global chromium_name trivalent
 
 %ifarch x86_64
 %global use_system_toolchain 0
