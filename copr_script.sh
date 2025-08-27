@@ -56,7 +56,12 @@ rm -rf "./$NAME"
 
 # Clone the repo with Fedora's toolchain patches
 git clone --depth 1 https://github.com/secureblue/trivalent.git
-cp ./trivalent/fedora_patches/* ./
+pushd trivalent/fedora_patches/
+patches=(*.patch)
+for ((i=0; i<${#patches[@]}; i++)); do
+	cp "${patches[i]}" "../../build/fedora-$((i+1000)).patch"
+done
+popd
 rm -rf ./trivalent
 
 # Get the filters that will be added
