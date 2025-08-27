@@ -49,6 +49,7 @@ Source1: install_filter.sh
 ExclusiveArch: x86_64 aarch64
 
 %{lua:
+	rpm.execute("echo", macros['use_system_toolchain'])
     if macros['use_system_toolchain'] == "1" then
 	    if posix.getenv("HOME") == "/builddir" then
 	        patches = rpm.glob('/builddir/build/SOURCES/*.patch')
