@@ -65,7 +65,7 @@ ExclusiveArch: x86_64 aarch64
 	 		count = count + 1
 	 	end
 	 	rpm.define("_fedoraPatchCount "..count-1)
-    	os.execute("echo 'Autopatch: "..macros['_patchCount'].."'")
+    	os.execute("echo 'Autopatch: "..macros['_fedoraPatchCount'].."'")
 	end
 }
 
@@ -79,7 +79,7 @@ BuildRequires: libudev-devel
 BuildRequires: dbus-devel
 BuildRequires: libdrm-devel
 BuildRequires: atk-devel
-BuildRequires: libcurl-devel
+BuildRequires: libcurl-devel_patchCount
 BuildRequires: at-spi2-atk-devel
 BuildRequires: pango-devel
 BuildRequires: mesa-libgbm-devel
@@ -117,7 +117,7 @@ Filter used by %{chromium_name} to provide content blocking.
 %setup -q -n chromium-%{version}
 
 %if %{use_system_toolchain}
-%autopatch -p1 -m 1000 -M %{_patchCount}
+%autopatch -p1 -m 1000 -M %{_fedoraPatchCount}
 %endif
 
 %build
