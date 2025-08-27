@@ -59,7 +59,7 @@ ExclusiveArch: x86_64 aarch64
 	    local printPatch = ""
         for p in ipairs(patches) do
             os.execute("echo 'Patching in "..patches[p].."'")
-            printPatch = "Patch"..count..": "..p
+            printPatch = "Patch"..count..": "..patches[p]
             rpm.execute("echo", printPatch)
             print(printPatch.."\n")
             count = count + 1
