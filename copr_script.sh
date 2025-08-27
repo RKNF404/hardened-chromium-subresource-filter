@@ -16,7 +16,7 @@ wget https://versionhistory.googleapis.com/v1/chrome/platforms/linux/channels/st
 grep \"version\" chromium-version.json | grep -oh "[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*" > chromium-version.txt
 
 # Preset variables
-readonly LIST_SOURCES=(
+declare -r LIST_SOURCES=(
     "https://easylist.to/easylist/easylist.txt"
     "https://easylist.to/easylist/easyprivacy.txt"
     "https://secure.fanboy.co.nz/fanboy-annoyance.txt"
@@ -46,15 +46,18 @@ readonly LIST_SOURCES=(
     "https://raw.githubusercontent.com/lassekongo83/Frellwits-filter-lists/master/Frellwits-Swedish-Filter.txt"
     "https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_7_Japanese/filter.txt"
 )
-readonly NAME="trivalent-subresource-filter"
+declare -r NAME="trivalent-subresource-filter"
 
 # Clone the repo with the spec file and chromium source downloader
-cp "$NAME/fedora_patches/chromium-127-rust-clanglib.patch" ./
-cp "$NAME/patches/use-clang19-cflag.patch" ./
 cp "$NAME/$NAME.spec" ./
 cp "$NAME/install_filter.sh" ./
 cp /usr/src/chromium/chromium-*-clean.tar.xz ./
 rm -rf "./$NAME"
+
+# Clone the repo with Fedora's toolchain patches
+git clone --depth 1 https://github.com/secureblue/trivalent.git
+cp ./trivalent/fedora_patches/* ./
+rm -rf ./trivalent
 
 # Get the filters that will be added
 counter=1
